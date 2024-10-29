@@ -1,0 +1,9 @@
+Options -Indexes
+RewriteEngine On
+
+# Permitir acceso desde otros archivos a imgs, css, php y ico
+RewriteCond %{REQUEST_URI} \.(imgs|css|php|ico)$ [NC]
+RewriteRule ^ - [L]
+
+# Denegar acceso directo a imgs, css, php y ico
+RewriteRule \.(imgs|css|php|ico)$ - [F]

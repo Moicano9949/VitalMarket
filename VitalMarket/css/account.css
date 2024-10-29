@@ -1,0 +1,144 @@
+body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f2f2f2;
+            scrollbar-width: thin;
+            scrollbar-color: #007bff #f3f3f3;
+        }
+
+        body::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        body::-webkit-scrollbar-thumb {
+            background-color: #007bff;
+            border-radius: 10px;
+        }
+
+        body::-webkit-scrollbar-track {
+            background-color: #f3f3f3;
+        }
+
+        header {
+            text-align: center;
+            padding: 20px;
+            background-color: #007bff;
+            position: relative;
+        }
+
+        h1 {
+            color: #fff;
+            margin: 0;
+        }
+
+        .navbar {
+            display: flex;
+            justify-content: center;
+            background-color: #fff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            position: absolute;
+            top: 80px;
+            left: 0;
+            width: 100%;
+            z-index: 100;
+        }
+
+        .navbar a {
+            color: #007bff;
+            text-decoration: none;
+            padding: 15px;
+            display: block;
+            transition: color 0.3s ease;
+        }
+
+        .navbar a:hover {
+            color: #004080;
+        }
+
+        .navbar a:hover,
+        .navbar a.active {
+            color: #004080;
+            border-bottom: 2px solid #004080;
+        }
+
+
+        .search-box {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        .search-input {
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            margin-right: 10px;
+            font-size: 16px;
+            width: 200px;
+        }
+
+        .cart-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 20px;
+            color: #007bff;
+            transition: color 0.3s ease;
+        }
+
+        .cart-btn:hover {
+            color: #004080;
+        }
+
+        .textos {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #007bff;
+        }
+
+        .logout-btn:hover {
+            background: linear-gradient(to bottom, #c82333, #bd2130);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        }
+
+        .account-info {
+            max-width: 600px;
+            margin: 80px auto 20px;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .account-info h2 {
+            margin-bottom: 20px;
+            color: #007bff;
+        }
+
+        .config-section {
+            margin-bottom: 20px;
+        }
+
+        .config-section h3 {
+            color: #007bff;
+        }
+
+        .config-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .config-item span {
+            color: #495057;
+        }
+        @media only screen and (max-width: 600px) {
+        .search-box {
+            margin-left: auto;
+            margin-right: auto;
+            width: 70%;
+        }
+    }
