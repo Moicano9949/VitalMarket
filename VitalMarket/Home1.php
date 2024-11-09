@@ -66,9 +66,9 @@ $result = $conn->query($sql);
                 <div class="product-info">
                     <h3><?php echo $row['nombre']; ?></h3>
                     <p class="price">$<?php echo number_format($row['precio'], 2); ?></p>
-            </a>
-                    <button class="add-to-cart">Agregar al carrito</button>
                 </div>
+            </a>
+            <button class="add-to-cart">Agregar al carrito</button>
         </div>
     <?php } ?>
 </div>
