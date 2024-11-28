@@ -16,7 +16,13 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 $conn->set_charset("utf8");
-$sql = "SELECT id, nombre, precio, imagen FROM productos";
+$sql = "
+    SELECT p.id, p.nombre, p.precio, ip.ruta_imagen
+    FROM productos p
+    LEFT JOIN imagenes_productos ip
+    ON p.id = ip.producto_id AND ip.es_principal = 1
+    GROUP BY p.id
+";
 $result = $conn->query($sql);
 ?>
 <!DOCTYPE html>
@@ -37,41 +43,47 @@ $result = $conn->query($sql);
         <h1>VitalMarket</h1>
         <div class="navbar">
             <a href="Home.php" class="active">Inicio</a>
-            <a href="Wallet.php">Billetera</a>
-            <a href="Categories.php">Categorías</a>
-            <a href="Offers.php">Ofertas</a>
+            <a href="Wallet.php">Categorias</a>
+            <a href="Categories.php">Ofertas</a>
+            <a href="cart-c.php">Carrito</a>
             <a href="account.php">Mi Cuenta</a>
         </div>
+        <div class="search-box">
+            <input type="text" class="search-input" placeholder="Buscar...">
+            <button class="cart-btn">🛒</button>
+        </div>
     </header>
-    <div class="search-cart">
-        <input type="text" placeholder="Buscar productos..." />
-        <button class="cart-button">
-            <img src="IMG/cart-icon.png" alt="Carrito" style="width: 20px; height: 20px; margin-right: 5px;">
-            Carrito de Compras
-        </button>
     </div>
     <div class="content">
         <h2 class="textos">Productos Destacados</h2>
         <div class="product-list">
     <?php while ($row = $result->fetch_assoc()) { ?>
-        <div class="product">
-            <a class="p-d" href="product-details.php?id=<?php echo $row['id']; ?>">
-                <div class="product-image">
-                    <?php if ($row['imagen']) { ?>
-                        <img src="<?php echo $row['imagen']; ?>" alt="<?php echo $row['nombre']; ?>">
-                    <?php } else { ?>
-                        <div class="no-image">Imagen no disponible</div>
-                    <?php } ?>
-                </div>
-                <div class="product-info">
-                    <h3><?php echo $row['nombre']; ?></h3>
-                    <p class="price">$<?php echo number_format($row['precio'], 2); ?></p>
+    <div class="product">
+        <a class="p-d" href="product-details.php?id=<?php echo $row['id']; ?>">
+            <div class="product-image">
+                <?php if ($row['ruta_imagen']) { ?>
+                    <img src="<?php echo $row['ruta_imagen']; ?>" alt="<?php echo $row['nombre']; ?>">
+                <?php } else { ?>
+                    <div class="no-image">Imagen no disponible</div>
+                <?php } ?>
+            </div>
+            <div class="product-info">
+                <h3><?php echo $row['nombre']; ?></h3>
+                <p class="price">$<?php echo number_format($row['precio'], 2); ?></p>
             </a>
-                    <button class="add-to-cart">Agregar al carrito</button>
-                </div>
-        </div>
-    <?php } ?>
+                <button class="add-to-cart">Agregar al carrito</button>
+            </div>
+    </div>
+<?php } ?>
 </div>
+    </div>
+<!-- Menú flotante del carrito -->
+    <div id="cart-menu" class="cart-menu">
+        <h3>Tu Carrito</h3>
+        <div id="cart-items">
+            <!-- Aquí se mostrarán los productos del carrito con Ajax -->
+        </div>
+        <button id="close-cart" class="close-cart">Cerrar</button>
     </div>
     <footer>
         <p>© 2024 VitalMarket. Todos los derechos reservados.</p>
@@ -119,7 +131,7 @@ $result = $conn->query($sql);
             notification.css({
                 position: 'fixed',
                 top: '20px',
-                right: '20px',
+                left: '20px',  // Cambié 'right' por 'left'
                 backgroundColor: '#007bff', // Fondo azul
                 color: 'white',
                 padding: '10px 20px',
@@ -141,6 +153,178 @@ $result = $conn->query($sql);
         }
     });
 </script>
+
+<script>
+    $(document).ready(function() {
+        // Mostrar el carrito al hacer clic en el ícono del carrito
+        $(".cart-btn").click(function() {
+            $("#cart-menu").toggleClass("show");  // Mostrar/ocultar el carrito
+            loadCart(); // Cargar los productos del carrito
+        });
+
+        // Cerrar el carrito
+        $("#close-cart").click(function() {
+            $("#cart-menu").removeClass("show");
+        });
+
+        // Cargar los productos del carrito con Ajax
+        function loadCart() {
+            $.ajax({
+                url: "cart.php",  // Archivo PHP que obtiene los productos del carrito
+                method: "GET",
+                success: function(response) {
+                    $("#cart-items").html(response);  // Insertar productos en el carrito
+                    attachRemoveHandlers();  // Adjuntar manejadores de eventos para eliminar productos
+                }
+            });
+        }
+
+        // Adjuntar manejadores de eventos para eliminar productos
+        function attachRemoveHandlers() {
+            $(".remove-item").click(function() {
+                var productName = $(this).data("name");
+                $.ajax({
+                    url: "cart.php",
+                    method: "POST",
+                    data: { remove: true, product_name: productName },
+                    success: function(response) {
+                        loadCart();  // Recargar el carrito después de eliminar el producto
+                    }
+                });
+            });
+        }
+    });
+</script>
+
+<!-- Estilos del carrito flotante -->
+<style>
+    /* Estilos para el carrito flotante */
+    .cart-menu {
+        display: none;
+        position: fixed;
+        top: 0;
+        right: 0;
+        width: 350px; /* Aumento de ancho para un carrito más espacioso */
+        height: 100%;
+        background-color: #fff;
+        box-shadow: -2px 0 10px rgba(0, 0, 0, 0.2);
+        padding: 20px;
+        z-index: 1000;
+        transition: transform 0.3s ease;
+        transform: translateX(100%);
+    }
+
+    .cart-menu.show {
+        display: block;
+        transform: translateX(0);
+    }
+
+    /* Botón para cerrar el carrito (modificado para ser menos ovalado) */
+    .close-cart {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background-color: #ff4d4d;
+        color: #fff;
+        padding: 10px 15px; /* Se ajusta el padding para hacerlo menos ovalado */
+        border: none;
+        border-radius: 5px; /* Bordes redondeados suaves */
+        cursor: pointer;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .close-cart:hover {
+        background-color: #ff3333;
+    }
+
+    /* Estilo de los productos en el carrito */
+    .cart-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 15px;
+        padding: 10px;
+        border-radius: 8px;
+        background-color: #f9f9f9;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        transition: background-color 0.3s ease, transform 0.3s ease;
+    }
+
+    .cart-item:hover {
+        background-color: #f1f1f1;
+        transform: translateX(5px); /* Efecto de deslizamiento suave */
+        text-decoration: underline;
+    }
+
+    /* Imagen del producto */
+    .cart-item-img {
+        width: 70px; /* Aumento de tamaño de la imagen */
+        height: 70px;
+        margin-right: 15px;
+        object-fit: cover; /* Asegura que la imagen se ajuste bien */
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+    /* Detalles del producto */
+    .cart-item-details {
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
+    }
+
+    .cart-item-name {
+        font-weight: bold;
+        font-size: 16px;
+        color: #333;
+        text-decoration: none;
+    }
+
+    .cart-item-price {
+        color: #777;
+        font-size: 14px;
+    }
+
+    /* Estilo para el botón de eliminar */
+    .remove-item {
+        background-color: #ff4d4d;
+        color: #fff;
+        border: none;
+        padding: 8px 15px;
+        cursor: pointer;
+        border-radius: 5px;
+        font-size: 14px;
+        transition: background-color 0.3s ease;
+    }
+
+    .remove-item:hover {
+        background-color: #ff3333;
+    }
+
+    /* Personalización del scroll */
+    #cart-items {
+        max-height: calc(100% - 60px);
+        overflow-y: auto;
+        padding-right: 15px;
+    }
+
+    /* Estilo del track del scroll */
+    #cart-items::-webkit-scrollbar {
+        width: 10px;
+    }
+
+    /* Estilo del pulgar del scroll */
+    #cart-items::-webkit-scrollbar-thumb {
+        background-color: #007bff;
+        border-radius: 5px;
+    }
+
+    /* Estilo del fondo del track del scroll */
+    #cart-items::-webkit-scrollbar-track {
+        background-color: #f3f3f3;
+        border-radius: 5px;
+    }
+
+</style>
 <style>
  /* Estilos generales */
         body {
@@ -175,7 +359,7 @@ $result = $conn->query($sql);
             background-color: #fff;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             position: fixed;
-            top: 80px;
+            top: 76px;
             left: 0;
             width: 100%;
             z-index: 100;
@@ -196,36 +380,36 @@ $result = $conn->query($sql);
         }
 
         /* Input de búsqueda y carrito de compras */
-        .search-cart {
-            display: flex;
-            justify-content: flex-end; /* Alinear a la derecha */
-            margin-top: 10px;
-            padding: 10px 20px; /* Espaciado adicional */
-        }
-
-        .search-cart input {
-            padding: 10px;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-            margin-right: 10px;
-        }
-
-        .cart-button {
-            background-color: #28a745;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            cursor: pointer;
-            border-radius: 5px;
-            transition: background-color 0.3s ease;
+        .search-box {
+            position: absolute;
+            top: 20px;
+            right: 60px;
             display: flex;
             align-items: center;
         }
 
-        .cart-button:hover {
-            background-color: #218838;
+        .search-input {
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            margin-right: 10px;
+            font-size: 16px;
+            width: 200px;
         }
 
+        .cart-btn {
+
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 20px;
+            color: #007bff;
+            transition: color 0.3s ease;
+        }
+
+        .cart-btn:hover {
+            color: #004080;
+        }
         /* Contenedor de contenido principal */
         .content {
             padding: 120px 20px 20px;
@@ -317,16 +501,16 @@ $result = $conn->query($sql);
         .add-to-cart:hover {
             background-color: #0056b3;
         }
-     footer {
-    text-align: center;
-    padding: 20px;
-    background-color: #007bff;
-    color: white;
-    position: fixed;
-    bottom: 0;
-    width: 100%;
-}
 
+        footer {
+            text-align: center;
+            padding: 10px;
+            background-color: #007bff;
+            color: #fff;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+        }
         /* Responsive para dispositivos móviles */
         @media only screen and (max-width: 768px) {
             .product-list {
